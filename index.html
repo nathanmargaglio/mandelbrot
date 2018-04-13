@@ -1,0 +1,141 @@
+<canvas id="mb"></canvas>
+
+<script>
+
+	// Visuals
+	var c = document.getElementById("mb");
+	var ctx = c.getContext("2d");
+
+	var length = 0;
+	if (window.innerWidth < window.innerHeight) {
+		length = window.innerWidth;
+	} else {
+		length = window.innerHeight;
+	}
+
+	c.width = length;
+	c.height = length;
+
+	function componentToHex(c) {
+		var hex = c.toString(16);
+		return hex.length == 1 ? "0" + hex : hex;
+	}
+
+	function rgbToHex(r, g, b) {
+		return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+	}
+
+	var point = function (x, y, c = 0) {
+		ctx.fillStyle = rgbToHex(c, 0, 0);
+		ctx.fillRect(x, y, 1, 1);
+	};
+
+	// Numerics
+	function Complex(real, imaginary) {
+		this.real = 0;
+		this.imaginary = 0;
+		this.real = (typeof real === 'undefined') ? this.real : parseFloat(real);
+		this.imaginary = (typeof imaginary === 'undefined') ? this.imaginary : parseFloat(imaginary);
+	}
+
+	Complex.transform = function (num) {
+		var complex;
+		complex = (num instanceof Complex) ? num : complex;
+		complex = (typeof num === 'number') ? new Complex(num, 0) : num;
+		return complex;
+	};
+
+	function complex_num_multiply(first, second) {
+		var num1, num2;
+		num1 = Complex.transform(first);
+		num2 = Complex.transform(second);
+		var real = (num1.real * num2.real) - (num1.imaginary * num2.imaginary);
+		var imaginary = (num1.real * num2.imaginary) + (num1.imaginary * num2.real);
+		return [real, imaginary];
+	}
+
+	var linspace = function (a, b, n) {
+		if (typeof n === "undefined") n = Math.max(Math.round(b - a) + 1, 1);
+		if (n < 2) {
+			return n === 1 ? [a] : [];
+		}
+		var i, ret = Array(n);
+		n--;
+		for (i = n; i >= 0; i--) {
+			ret[i] = (i * b + (n - i) * a) / n;
+		}
+		return ret;
+	};
+
+	var mag = function (a, b) {
+		return Math.sqrt((a * a + b * b))
+	};
+
+	var f = function (r, i, cr, ci) {
+		var z = new Complex(r, i);
+		var res = complex_num_multiply(z, z);
+		var real = res[0];
+		var img = res[1];
+		return [real + cr, img + ci];
+	};
+
+	var bounded = function (cr, ci) {
+		var val = f(0, 0, cr, ci);
+		for (var i = 0; i < 255; i++) {
+			val = f(val[0], val[1], cr, ci)
+			if (mag(val[0], val[1]) > 1000) {
+				return i;
+			}
+		}
+		return 255;
+	};
+
+	// Mandelbrot
+
+	function getMousePos(canvas, evt) {
+		var rect = canvas.getBoundingClientRect();
+		return {
+			x: evt.clientX - rect.left,
+			y: evt.clientY - rect.top
+		};
+	}
+
+	c.addEventListener('click', function(evt) {
+		var mousePos = getMousePos(c, evt);
+		x_r = linspace(x0, x1, length);
+		y_r = linspace(y0, y1, length);
+		var xp = x_r[Math.floor(mousePos.x)];
+		var yp = y_r[Math.floor(mousePos.y)];
+		var message = 'Mouse position: ' + xp + ',' + yp;
+
+		clen = clen / 2;
+
+		x0 = xp - clen;
+		x1 = xp + clen;
+		y0 = yp - clen;
+		y1 = yp + clen;
+
+		draw();
+	}, false);
+
+	function draw() {
+		x_r = linspace(x0, x1, length);
+		y_r = linspace(y0, y1, length);
+
+		for (var x = 0; x < length; x++) {
+			for (var y = 0; y < length; y++) {
+				res = bounded(x_r[x], y_r[y]);
+				point(x, y, res);
+			}
+		}
+	}
+
+	var clen = 2;
+	var x0 = -1*clen;
+	var x1 =  clen;
+	var y0 = -1*clen;
+	var	y1 = clen;
+
+	draw();
+
+</script>
