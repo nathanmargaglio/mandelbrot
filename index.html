@@ -1,5 +1,18 @@
 <canvas id="mb"></canvas>
-
+<div id="zoom-out" onclick="zoomOut()"></div>
+<style>
+    #zoom-out {
+        border-radius: 100%;
+        width: 2vw;
+        height: 2vw;
+        background-color: #5bc0de;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        min-width: 50px;
+        min-height: 50px;
+    }
+</style>
 <script>
 
     // Visuals
@@ -26,7 +39,23 @@
     }
 
     var point = function (x, y, c = 0) {
-        ctx.fillStyle = rgbToHex(c, 0, 0);
+        switch(colorChoice) {
+            case 'white':
+                ctx.fillStyle = rgbToHex(c, c, c);
+                break;
+            case 'red':
+                ctx.fillStyle = rgbToHex(c, 0, 0);
+                break;
+            case 'blue':
+                ctx.fillStyle = rgbToHex(0, 0, c);
+                break;
+            case 'green':
+                ctx.fillStyle = rgbToHex(0, c, 0);
+                break;
+            default:
+                ctx.fillStyle = rgbToHex(c, 0, 255-c);
+        }
+
         ctx.fillRect(x, y, pixelWidth, pixelWidth);
     };
 
@@ -110,15 +139,15 @@
         };
     }
 
-    c.addEventListener('click', function (evt) {
+    function zoomIn(evt) {
         var mousePos = getMousePos(c, evt);
         x_r = linspace(x0, x1, length);
         y_r = linspace(y0, y1, length);
         var xp = x_r[Math.floor(mousePos.x)];
         var yp = y_r[Math.floor(mousePos.y)];
-        var message = 'Mouse position: ' + xp + ',' + yp;
 
-        clen = clen / 2;
+        zoomFactor = zoomFactor * 2;
+        clen = 2 / zoomFactor;
 
         x0 = xp - clen;
         x1 = xp + clen;
@@ -127,6 +156,33 @@
 
         draw();
 
+        if (history.pushState) {
+            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
+                '?res=' + pixelWidth + '&color=' + colorChoice + '&zoom=' + zoomFactor + '&x=' + xp + '&y=' + yp;
+            window.history.pushState({path:newurl},'',newurl);
+        }
+    }
+
+    function zoomOut() {
+        zoomFactor = zoomFactor / 2;
+        clen = 2 / zoomFactor;
+
+        x0 = xp - clen;
+        x1 = xp + clen;
+        y0 = yp - clen;
+        y1 = yp + clen;
+
+        draw();
+
+        if (history.pushState) {
+            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
+                '?res=' + pixelWidth + '&color=' + colorChoice + '&zoom=' + zoomFactor + '&x=' + xp + '&y=' + yp;
+            window.history.pushState({path:newurl},'',newurl);
+        }
+    }
+
+    c.addEventListener('click', function (evt) {
+        zoomIn(evt);
     }, false);
 
     function draw() {
@@ -146,11 +202,31 @@
         pixelWidth = parseInt(getParam('res'));
     }
 
-    var clen = 2;
-    var x0 = -1 * clen;
-    var x1 = clen;
-    var y0 = -1 * clen;
-    var y1 = clen;
+    var colorChoice = 'white';
+    if (getParam('color')) {
+        colorChoice = getParam('color');
+    }
+
+    var zoomFactor = 1;
+    if (getParam('zoom')) {
+        zoomFactor = parseInt(getParam('zoom'));
+    }
+
+    var xp = 0;
+    if (getParam('x')) {
+        xp = parseFloat(getParam('x'));
+    }
+
+    var yp = 0;
+    if (getParam('y')) {
+        yp = parseFloat(getParam('y'));
+    }
+
+    var clen = 2 / zoomFactor;
+    var x0 = xp - clen;
+    var x1 = xp + clen;
+    var y0 = yp - clen;
+    var y1 = yp + clen;
 
     draw();
 
